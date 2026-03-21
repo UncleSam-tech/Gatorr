@@ -4,14 +4,8 @@
  * to the PRD requirement for Open Web Crawl Mode.
  */
 import * as cheerio from 'cheerio';
-import { SourceRegistryService } from './sourceRegistry';
-
 export class CrawlerService {
-  private registry: SourceRegistryService;
-
-  constructor() {
-    this.registry = new SourceRegistryService();
-  }
+  constructor() {}
 
   async fetchPage(url: string, workspaceId: string) {
     try {
@@ -39,15 +33,6 @@ export class CrawlerService {
 
       // We bypass Source Registry for generalized anonymous search in V1
       // as the query generates exact domains, but we enforce hard timeouts instead.
-      const policy = await this.registry.getSourcePolicy(domain, workspaceId);
-      if (policy.status === 'disabled') {
-        throw new Error(`Domain ${domain} is disabled or unauthorized.`);
-      }
-
-      if (policy.crawlMode === 'assist_only' || policy.crawlMode === 'manual_import_only') {
-        throw new Error(`Domain ${domain} restricts automated crawling. Must use assisted capture.`);
-      }
-
       // Simple fetch for crawlable open web with strict 5s timeout & size abort
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);

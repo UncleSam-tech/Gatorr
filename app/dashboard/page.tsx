@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
+import DetailModal from '@/components/DetailModal';
 
 export default function Dashboard() {
   const [query, setQuery] = useState('');
@@ -9,6 +10,8 @@ export default function Dashboard() {
   const [results, setResults] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
+  
+  const [selectedSignal, setSelectedSignal] = useState<any | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +66,7 @@ export default function Dashboard() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search for competitors (e.g. salesforce alternatives or notion issues)" 
-              className="w-full text-lg py-5 pl-4 pr-6 outline-none bg-transparent"
+              className="w-full text-lg py-5 pl-4 pr-6 outline-none bg-transparent text-slate-900 placeholder-slate-300 font-medium"
               disabled={isLoading}
             />
             <button 
@@ -114,6 +117,7 @@ export default function Dashboard() {
                     score={r.acquisitionScore} 
                     source={r.domain}
                     time="Just now"
+                    onClick={() => setSelectedSignal(r)}
                   />
                 ))}
               </div>
@@ -121,13 +125,22 @@ export default function Dashboard() {
           </section>
         )}
       </main>
+      
+      <DetailModal 
+        isOpen={!!selectedSignal} 
+        onClose={() => setSelectedSignal(null)} 
+        data={selectedSignal} 
+      />
     </div>
   );
 }
 
-function SignalRow({ pain, intent, score, source, time }: any) {
+function SignalRow({ pain, intent, score, source, time, onClick }: any) {
   return (
-    <div className="flex items-center justify-between p-5 bg-slate-50/50 rounded-2xl hover:bg-white transition-all cursor-pointer border border-slate-100 hover:border-slate-300 hover:shadow-md group">
+    <div 
+      onClick={onClick}
+      className="flex items-center justify-between p-5 bg-slate-50/50 rounded-2xl hover:bg-white transition-all cursor-pointer border border-slate-100 hover:border-slate-300 hover:shadow-md group"
+    >
       <div className="flex-1 pr-6">
         <p className="font-bold text-lg text-slate-800 mb-1 group-hover:text-blue-600 transition-colors">{pain}</p>
         <p className="text-sm text-slate-500 font-medium uppercase tracking-wide">{intent}</p>
