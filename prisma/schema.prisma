@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model AnonymousLimit {
+  id              String   @id @default(uuid())
+  fingerprintHash String   @unique // Hashed IP + UserAgent + Cookie
+  windowStart     DateTime
+  windowEnd       DateTime
+  searchesUsed    Int      @default(0)
+  lastSeenAt      DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SearchRun {
+  id              String   @id @default(uuid())
+  fingerprintHash String
+  queryText       String
+  queryHash       String
+  status          String   // e.g., 'processing', 'completed', 'failed'
+  startedAt       DateTime @default(now())
+  finishedAt      DateTime?
+  resultCount     Int      @default(0)
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+  results         SearchResult[]
+}
+
+model SearchResult {
+  id               String   @id @default(uuid())
+  searchRunId      String
+  title            String
+  sourceUrl        String
+  domain           String
+  snippet          String
+  summary          String
+  signalType       String
+  competitor       String?
+  painScore        Int
+  intentScore      Int
+  acquisitionScore Int
+  publishedAt      DateTime?
+  createdAt        DateTime @default(now())
+  expiresAt        DateTime
+
+  searchRun        SearchRun @relation(fields: [searchRunId], references: [id], onDelete: Cascade)
+}
+
+model ResultCache {
+  id              String   @id @default(uuid())
+  queryHash       String   @unique
+  normalizedQuery String
+  responseJson    String   // Store as raw JSON or Prisma JSON
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
+}
