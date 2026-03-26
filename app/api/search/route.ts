@@ -59,16 +59,31 @@ export async function POST(request: Request) {
     const parser = new ParserService();
     const extractor = new ExtractionService();
 
-    // Budget: at most 3 expanded search queries
-    // We mock discovery generation for V1 mapping straight to predefined seeds.
-    const seedUrls = [`https://news.ycombinator.com/item?id=mock-${queryHash.substring(0, 5)}`];
+    // We build comprehensive discovery using both specialized endpoints and universal meta-search.
+    const encodedQuery = encodeURIComponent(query);
+    const intentQuery = encodeURIComponent(`${query} "alternative" OR "issue" OR "review"`);
+    const seedUrls = [
+      `https://old.reddit.com/search?q=${encodedQuery}`,                                     // Reddit Discussions
+      `https://hn.algolia.com/api/v1/search?query=${encodedQuery}`,                          // Hacker News JSON
+      `https://github.com/search?q=${encodedQuery}&type=issues`,                             // GitHub Issues
+      `https://html.duckduckgo.com/html/?q=${intentQuery}`,                                  // Open Web meta-search via DDG
+      `https://news.google.com/rss/search?q=${encodedQuery}+when:1y&hl=en-US&gl=US&ceid=US:en`, // Google News Search (XML)
+      `https://api.stackexchange.com/2.3/search?order=desc&sort=relevance&intitle=${encodedQuery}&site=stackoverflow` // StackOverflow JSON
+    ];
     
     let savedCount = 0;
     const finalResults = [];
 
     // Fetch budget: at most 5 pages.
     for (const seedUrl of seedUrls.slice(0, 5)) {
-      const crawledData = await crawler.fetchPage(seedUrl, 'anon-workspace-bypassed');
+      let crawledData;
+      try {
+        crawledData = await crawler.fetchPage(seedUrl, 'anon-workspace-bypassed');
+      } catch (err) {
+        console.warn(`Crawler failed for seed ${seedUrl}:`, err);
+        continue; // Skip this seed and try the next one
+      }
+      
       const chunks = parser.splitIntoComments(crawledData.mainText);
       
       for (const chunk of chunks) {
